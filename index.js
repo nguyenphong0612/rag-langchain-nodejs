@@ -7,7 +7,7 @@ const { generateAnswer } = require('./src/generate-answer');
 const { extractTextsFromPDF } = require('./src/parse-pdf');
 const { checkIndexExists, createIndex, describeIndexStats, retrieveRelevantChunks, storeEmbeddings } = require('./src/vector-db');
 
-const processPdf = async (pdfpath = './pdfs/basic-concepts-gst.pdf') => {
+const processPdf = async (pdfpath = './pdfs/HUONG_DAN_SU_DUNG_THISINH_DKNV_2025.pdf') => {
   console.log('Processing PDF', pdfpath)
   const pdfTexts = await extractTextsFromPDF(pdfpath);
   const pdfChunks = chunkTexts(pdfTexts);

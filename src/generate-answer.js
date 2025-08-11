@@ -4,7 +4,7 @@ const { ChatOpenAI } = require('@langchain/openai');
 // https://js.langchain.com/v0.2/docs/integrations/chat/azure/
 async function generateAnswer(query, retrievedChunks) {
   const llm = new ChatOpenAI({
-    model: "gpt-4o-mini",
+    model: "gpt-4.1-mini",
     // Include any other parameters required, e.g., temperature, max_tokens, etc.
   });
 
@@ -12,7 +12,7 @@ async function generateAnswer(query, retrievedChunks) {
   const context = retrievedChunks.join(' ');
 
   // Construct the prompt with specific instructions
-  const systemMessage = `You are an AI that answers questions strictly based on the provided context. 
+  const systemMessage = `You are an AI that answers questions strictly based on your knowledge and the provided context. 
   If the context doesn't contain enough information, respond with "I do not have enough info to answer this question."`;
 
   const humanMessage = `Context: ${context}\n\nQuestion: ${query}`;
