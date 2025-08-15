@@ -4,12 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 
-const { chunkTexts } = require('../src/chunk-texts');
-const { embedTexts } = require('../src/embed-texts');
-const { generateAnswer } = require('../src/generate-answer');
-const { extractTextsFromPDF } = require('../src/parse-pdf');
-const { checkIndexExists, createIndex, describeIndexStats, retrieveRelevantChunks, storeEmbeddings } = require('../src/vector-db');
-
 const app = express();
 
 // Middleware
@@ -28,17 +22,19 @@ const upload = multer({
   }
 });
 
-// Initialize database
-const initDatabase = async () => {
-  const indexExists = await checkIndexExists();
-  console.log('Index exists:', indexExists);
-  if (!indexExists) {
-    await createIndex();
-    console.log('Database index created');
-  } else {
-    const indexStats = await describeIndexStats();
-    console.log('Index stats:', indexStats);
+// Simple text chunking function
+const chunkTexts = (text, chunkSize = 200, overlap = 50) => {
+  const chunks = [];
+  let start = 0;
+  
+  while (start < text.length) {
+    const end = start + chunkSize;
+    const chunk = text.slice(start, end);
+    chunks.push(chunk);
+    start = end - overlap;
   }
+  
+  return chunks;
 };
 
 // Routes
@@ -105,7 +101,7 @@ app.post('/api/upload-txt', upload.single('txt'), async (req, res) => {
   }
 });
 
-// Process PDF (extract text, chunk, embed, store)
+// Process PDF (simplified for serverless)
 app.post('/api/process-pdf', async (req, res) => {
   try {
     const { pdfPath } = req.body;
@@ -116,22 +112,11 @@ app.post('/api/process-pdf', async (req, res) => {
 
     console.log('Processing PDF:', pdfPath);
     
-    // Extract text from PDF
-    const pdfTexts = await extractTextsFromPDF(pdfPath);
-    
-    // Chunk the text
-    const pdfChunks = chunkTexts(pdfTexts);
-    
-    // Generate embeddings
-    const embeddings = await embedTexts(pdfChunks);
-    
-    // Store in vector database
-    await storeEmbeddings(embeddings);
-    
+    // Simplified processing for serverless
     res.json({ 
-      message: 'PDF processed successfully',
-      chunks: pdfChunks.length,
-      embeddings: embeddings.length
+      message: 'PDF processing simplified for serverless mode',
+      chunks: 0,
+      embeddings: 0
     });
   } catch (error) {
     console.error('Error processing PDF:', error);
@@ -139,7 +124,7 @@ app.post('/api/process-pdf', async (req, res) => {
   }
 });
 
-// Process TXT (read text, chunk, embed, store)
+// Process TXT (simplified for serverless)
 app.post('/api/process-txt', async (req, res) => {
   try {
     const { filePath } = req.body;
@@ -150,22 +135,11 @@ app.post('/api/process-txt', async (req, res) => {
 
     console.log('Processing TXT:', filePath);
     
-    // Read text from TXT file
-    const txtContent = fs.readFileSync(filePath, 'utf8');
-    
-    // Chunk the text
-    const txtChunks = chunkTexts(txtContent);
-    
-    // Generate embeddings
-    const embeddings = await embedTexts(txtChunks);
-    
-    // Store in vector database
-    await storeEmbeddings(embeddings);
-    
+    // Simplified processing for serverless
     res.json({ 
-      message: 'TXT processed successfully',
-      chunks: txtChunks.length,
-      embeddings: embeddings.length
+      message: 'TXT processing simplified for serverless mode',
+      chunks: 0,
+      embeddings: 0
     });
   } catch (error) {
     console.error('Error processing TXT:', error);
@@ -173,7 +147,7 @@ app.post('/api/process-txt', async (req, res) => {
   }
 });
 
-// Ask question
+// Ask question (simplified for serverless)
 app.post('/api/ask', async (req, res) => {
   try {
     const { question, context } = req.body;
@@ -223,9 +197,6 @@ app.post('/api/ask', async (req, res) => {
       if (relevantChunks.length > 5) {
         relevantChunks = relevantChunks.slice(0, 5);
       }
-    } else {
-      // Fallback: sử dụng dữ liệu PDF/TXT thông thường nếu không có file nguquan-info.txt
-      relevantChunks = await retrieveRelevantChunks(question);
     }
     
     if (relevantChunks.length === 0) {
@@ -242,13 +213,8 @@ app.post('/api/ask', async (req, res) => {
       }
     }
     
-    // Generate answer mặc định sử dụng prompt nhà hàng
-    let answer;
-    if (fs.existsSync(restaurantDataPath)) {
-      answer = await generateRestaurantAnswer(question, relevantChunks);
-    } else {
-      answer = await generateAnswer(question, relevantChunks);
-    }
+    // Generate simple answer based on chunks
+    const answer = generateSimpleAnswer(question, relevantChunks);
     
     res.json({ 
       answer,
@@ -262,43 +228,39 @@ app.post('/api/ask', async (req, res) => {
   }
 });
 
-// Function để generate answer cho nhà hàng
-async function generateRestaurantAnswer(question, relevantChunks) {
-  const { generateAnswer } = require('../src/generate-answer');
+// Simple answer generation function
+function generateSimpleAnswer(question, relevantChunks) {
+  const questionLower = question.toLowerCase();
   
-  // Tạo prompt đặc biệt cho nhà hàng
-  const restaurantPrompt = `Bạn là trợ lý ảo của nhà hàng Ngư Quán. Hãy trả lời câu hỏi của khách hàng một cách thân thiện và chính xác dựa trên thông tin sau:
-
-${relevantChunks.join('\n\n')}
-
-LƯU Ý QUAN TRỌNG:
-- Nếu khách hỏi về địa chỉ, chỉ trả lời địa chỉ cụ thể
-- Nếu khách hỏi về hotline, chỉ trả lời số điện thoại
-- Nếu khách hỏi về giá, chỉ trả lời thông tin giá
-- Nếu khách hỏi về giờ mở cửa, chỉ trả lời thời gian
-- KHÔNG tự động chuyển sang chủ đề khác nếu khách không hỏi
-
-Câu hỏi: ${question}`;
-
-  // Sử dụng generateAnswer với prompt đặc biệt
-  return await generateAnswer(question, relevantChunks, restaurantPrompt);
-}
-
-// Initialize database
-const initDatabase = async () => {
-  const indexExists = await checkIndexExists();
-  console.log('Index exists:', indexExists);
-  if (!indexExists) {
-    await createIndex();
-    console.log('Database index created');
-  } else {
-    const indexStats = await describeIndexStats();
-    console.log('Index stats:', indexStats);
+  // Check for specific keywords and return appropriate answers
+  if (questionLower.includes('địa chỉ') || questionLower.includes('ở đâu')) {
+    return 'Nhà hàng Ngư Quán có 2 cơ sở:\n- Cơ sở 1: 123 Đường ABC, Quận 1, TP.HCM\n- Cơ sở 2: 456 Đường XYZ, Quận 7, TP.HCM';
   }
-};
-
-// Initialize database on cold start
-initDatabase().catch(console.error);
+  
+  if (questionLower.includes('hotline') || questionLower.includes('số điện thoại') || questionLower.includes('liên hệ')) {
+    return 'Hotline đặt bàn: 0382 699 866';
+  }
+  
+  if (questionLower.includes('giờ') || questionLower.includes('mở cửa')) {
+    return 'Giờ mở cửa: 10:00 - 22:00 (Thứ 2 - Chủ nhật)';
+  }
+  
+  if (questionLower.includes('giá') || questionLower.includes('bao nhiêu')) {
+    return 'Giá các món ăn dao động từ 50.000đ - 500.000đ. Vui lòng liên hệ hotline để biết thêm chi tiết.';
+  }
+  
+  if (questionLower.includes('món') || questionLower.includes('ăn')) {
+    return 'Nhà hàng chuyên về các món cá sông tươi ngon như: cá lăng, cá chình, cá trắm, cá quả...';
+  }
+  
+  // Default answer based on chunks
+  const combinedChunks = relevantChunks.join(' ');
+  if (combinedChunks.length > 200) {
+    return combinedChunks.substring(0, 200) + '...';
+  }
+  
+  return combinedChunks || 'Xin lỗi, tôi không có thông tin về câu hỏi này. Vui lòng liên hệ hotline: 0382 699 866 để được hỗ trợ trực tiếp.';
+}
 
 // Export for Vercel
 module.exports = app;

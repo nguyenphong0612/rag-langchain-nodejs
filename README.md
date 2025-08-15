@@ -34,9 +34,10 @@ vercel env add PINECONE_API_KEY
 
 ### Lưu ý quan trọng cho Vercel
 - **Serverless Functions**: Project sử dụng Vercel serverless functions trong thư mục `api/`
+- **Simplified Version**: Phiên bản serverless đã được đơn giản hóa để tránh lỗi dependency
 - **File Upload**: Trong serverless mode, file upload được xử lý trong memory (không lưu trữ vĩnh viễn)
-- **Database**: Pinecone vector database hoạt động bình thường
-- **Local Development**: Vẫn có thể chạy `npm start` để test locally với `server.js`
+- **Local Development**: Vẫn có thể chạy `npm start` để test locally với `server.js` (phiên bản đầy đủ)
+- **AI Features**: Serverless version sử dụng rule-based responses thay vì OpenAI API để đảm bảo ổn định
 
 ## 🌟 Tính năng chính
 
