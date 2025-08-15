@@ -1,40 +1,24 @@
-require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 
-const { chunkTexts } = require('./src/chunk-texts');
-const { embedTexts } = require('./src/embed-texts');
-const { generateAnswer } = require('./src/generate-answer');
-const { extractTextsFromPDF } = require('./src/parse-pdf');
-const { checkIndexExists, createIndex, describeIndexStats, retrieveRelevantChunks, storeEmbeddings } = require('./src/vector-db');
+const { chunkTexts } = require('../src/chunk-texts');
+const { embedTexts } = require('../src/embed-texts');
+const { generateAnswer } = require('../src/generate-answer');
+const { extractTextsFromPDF } = require('../src/parse-pdf');
+const { checkIndexExists, createIndex, describeIndexStats, retrieveRelevantChunks, storeEmbeddings } = require('../src/vector-db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-// Multer configuration for file upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = './pdfs';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-
+// Multer configuration for file upload (memory storage for serverless)
 const upload = multer({ 
-  storage: storage,
+  storage: multer.memoryStorage(),
   fileFilter: function (req, file, cb) {
     if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.txt')) {
       cb(null, true);
@@ -59,11 +43,11 @@ const initDatabase = async () => {
 
 // Routes
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.sendFile(path.join(__dirname, '../public', 'admin.html'));
 });
 
 // API Routes
@@ -71,54 +55,50 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'RAG API is running' });
 });
 
-// Get list of available files
+// Get list of available files (simplified for serverless)
 app.get('/api/pdfs', (req, res) => {
   try {
-    const filesDir = './pdfs';
-    if (!fs.existsSync(filesDir)) {
-      return res.json({ pdfs: [] });
-    }
-    
-    const files = fs.readdirSync(filesDir);
-    const supportedFiles = files.filter(file => 
-      file.toLowerCase().endsWith('.pdf') || file.toLowerCase().endsWith('.txt')
-    );
-    res.json({ pdfs: supportedFiles });
+    // For serverless, we'll return a default list since file system is read-only
+    res.json({ 
+      pdfs: ['nguquan-info.txt'],
+      message: 'Serverless mode - using default restaurant data'
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get file list' });
   }
 });
 
-// Upload PDF
+// Upload PDF (simplified for serverless)
 app.post('/api/upload-pdf', upload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No PDF file uploaded' });
     }
 
-    const filePath = req.file.path;
+    // In serverless, we can't save files permanently
+    // We'll process the file directly from memory
     res.json({ 
-      message: 'PDF uploaded successfully',
+      message: 'File uploaded successfully (serverless mode)',
       filename: req.file.originalname,
-      path: filePath
+      size: req.file.size
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Upload TXT
+// Upload TXT (simplified for serverless)
 app.post('/api/upload-txt', upload.single('txt'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No TXT file uploaded' });
     }
 
-    const filePath = req.file.path;
+    // In serverless, we can't save files permanently
     res.json({ 
-      message: 'TXT uploaded successfully',
+      message: 'TXT uploaded successfully (serverless mode)',
       filename: req.file.originalname,
-      path: filePath
+      size: req.file.size
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -203,18 +183,16 @@ app.post('/api/ask', async (req, res) => {
     }
 
     console.log('Question:', question, 'Context:', context);
-    console.log('Question length:', question.length);
-    console.log('Question bytes:', Buffer.from(question, 'utf8').length);
     
     let relevantChunks = [];
     
     // Mặc định sử dụng dữ liệu nhà hàng từ nguquan-info.txt
-    const restaurantDataPath = './pdfs/nguquan-info.txt';
+    const restaurantDataPath = path.join(__dirname, '../pdfs/nguquan-info.txt');
     if (fs.existsSync(restaurantDataPath)) {
       const restaurantText = fs.readFileSync(restaurantDataPath, 'utf8');
       const restaurantChunks = chunkTexts(restaurantText, 200, 50);
       
-            // Tìm chunks liên quan dựa trên từ khóa trong câu hỏi
+      // Tìm chunks liên quan dựa trên từ khóa trong câu hỏi
       const questionLower = question.toLowerCase();
       
       // Logic RAG đơn giản: tìm chunks có chứa từ khóa trong câu hỏi
@@ -286,7 +264,7 @@ app.post('/api/ask', async (req, res) => {
 
 // Function để generate answer cho nhà hàng
 async function generateRestaurantAnswer(question, relevantChunks) {
-  const { generateAnswer } = require('./src/generate-answer');
+  const { generateAnswer } = require('../src/generate-answer');
   
   // Tạo prompt đặc biệt cho nhà hàng
   const restaurantPrompt = `Bạn là trợ lý ảo của nhà hàng Ngư Quán. Hãy trả lời câu hỏi của khách hàng một cách thân thiện và chính xác dựa trên thông tin sau:
@@ -306,17 +284,21 @@ Câu hỏi: ${question}`;
   return await generateAnswer(question, relevantChunks, restaurantPrompt);
 }
 
-// Initialize database and start server
-const startServer = async () => {
-  try {
-    await initDatabase();
-    app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+// Initialize database
+const initDatabase = async () => {
+  const indexExists = await checkIndexExists();
+  console.log('Index exists:', indexExists);
+  if (!indexExists) {
+    await createIndex();
+    console.log('Database index created');
+  } else {
+    const indexStats = await describeIndexStats();
+    console.log('Index stats:', indexStats);
   }
 };
 
-startServer();
+// Initialize database on cold start
+initDatabase().catch(console.error);
+
+// Export for Vercel
+module.exports = app;

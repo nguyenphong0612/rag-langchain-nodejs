@@ -1,11 +1,16 @@
 function chunkTexts(text, chunkSize = 1000, overlapSize = 200) {
   const chunks = [];
+  
+  // Nếu text là array, join lại thành một string
+  if (Array.isArray(text)) {
+    text = text.join('\n');
+  }
+  
   let start = 0;
 
   while (start < text.length) {
     const end = start + chunkSize;
     const chunk = text.slice(start, end);
-    console.log('Chunk---------------->', chunk);
     chunks.push(chunk);
     start += chunkSize - overlapSize; // Move forward by chunkSize minus overlap
   }

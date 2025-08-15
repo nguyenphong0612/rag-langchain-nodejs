@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ngư Quán Phong Dev - Đặc sản cá sông</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #2c5530 0%, #1e3a22 100%);
+            color: white;
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #90EE90;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect fill="%232c5530" width="1200" height="600"/><text x="600" y="300" text-anchor="middle" fill="white" font-size="48">Ngư Quán Phong Dev</text></svg>');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            margin-top: 60px;
+        }
+
+        .hero-content h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            background: #90EE90;
+            color: #2c5530;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .cta-button:hover {
+            background: #7CFC00;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section h2 {
+            font-size: 2.5rem;
+            color: #2c5530;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .about-text p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .about-image {
+            background: #f0f0f0;
+            height: 300px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #666;
+        }
+
+        /* Menu Section */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .menu-item {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .menu-item h3 {
+            color: #2c5530;
+            margin-bottom: 1rem;
+        }
+
+        .price {
+            font-size: 1.5rem;
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        /* Contact Section */
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .contact-card {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .contact-card h3 {
+            color: #2c5530;
+            margin-bottom: 1rem;
+        }
+
+        .contact-card p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* RAG Chat Widget */
+        .rag-chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: #2c5530;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+
+        .message.bot {
+            background: white;
+            border-left: 4px solid #2c5530;
+        }
+
+        .message.user {
+            background: #2c5530;
+            color: white;
+            margin-left: 20px;
+        }
+
+        .chat-input {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            background: white;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+
+        .chat-input button {
+            padding: 10px 20px;
+            background: #2c5530;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #2c5530;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 9999;
+        }
+
+        /* Footer */
+        .footer {
+            background: #2c5530;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+            
+            .about-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .rag-chat-widget {
+                width: 90%;
+                right: 5%;
+                left: 5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">🐟 Ngư Quán Phong Dev</div>
+            <ul class="nav-links">
+                <li><a href="#about">Giới thiệu</a></li>
+                <li><a href="#menu">Thực đơn</a></li>
+                <li><a href="#contact">Liên hệ</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Ngư Quán Phong Dev</h1>
+            <p>Đặc sản cá sông - Hương vị thiên nhiên</p>
+            <button class="cta-button" onclick="scrollToSection('menu')">Xem thực đơn</button>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- About Section -->
+        <section id="about" class="section">
+            <h2>Giới thiệu</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>Ra đời từ năm 2012, nhà hàng Ngư Quán chuyên phục vụ các món ăn đặc sản cá sông, cá khủng, cùng các loại thịt thú rừng với nguyên liệu tươi ngon, không gian thư giãn và đội ngũ nhân viên phục vụ tận tình.</p>
+                    <p>Với hàng chục loại cá sông thiên nhiên từ mọi vùng miền cùng hơn 50 món ăn và cách chế biến khác nhau tạo nên sự đa dạng và đặc sắc mà không nơi đâu có.</p>
+                    <p>Để không ngừng vươn xa hơn nữa trong việc mang những món ăn ngon đến với thực khách, nhà hàng Ngư Quán hy vọng sẽ nhận được sự quan tâm và ủng hộ của Quý khách hàng gần xa!</p>
+                </div>
+                <div class="about-image">
+                    🐟 Đặc sản cá sông
+                </div>
+            </div>
+        </section>
+
+        <!-- Menu Section -->
+        <section id="menu" class="section">
+            <h2>Thực đơn nổi bật</h2>
+            <div class="menu-grid">
+                <div class="menu-item">
+                    <h3>Cá chình suối</h3>
+                    <div class="price">1.350.000đ</div>
+                    <p>Cá chình suối tươi ngon, chế biến theo công thức đặc biệt</p>
+                </div>
+                <div class="menu-item">
+                    <h3>Cá lăng nướng</h3>
+                    <div class="price">850.000đ</div>
+                    <p>Cá lăng nướng than hoa, thơm ngon đặc trưng</p>
+                </div>
+                <div class="menu-item">
+                    <h3>Cá trắm om chuối</h3>
+                    <div class="price">650.000đ</div>
+                    <p>Cá trắm om chuối đậu, hương vị truyền thống</p>
+                </div>
+                <div class="menu-item">
+                    <h3>Cá quả nấu canh chua</h3>
+                    <div class="price">550.000đ</div>
+                    <p>Canh chua cá quả, chua ngọt hài hòa</p>
+                </div>
+                <div class="menu-item">
+                    <h3>Cá rô đồng kho tộ</h3>
+                    <div class="price">450.000đ</div>
+                    <p>Cá rô đồng kho tộ, đậm đà hương vị quê nhà</p>
+                </div>
+                <div class="menu-item">
+                    <h3>Cá trê om dưa</h3>
+                    <div class="price">400.000đ</div>
+                    <p>Cá trê om dưa cải, món ăn dân dã</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="section">
+            <h2>Liên hệ</h2>
+            <div class="contact-info">
+                <div class="contact-card">
+                    <h3>Cơ sở 1</h3>
+                    <p><strong>Địa chỉ:</strong> Số 51 Hoàng Quán Chi</p>
+                    <p>Yên Hoà, Cầu Giấy, Hà Nội</p>
+                    <p><strong>Hotline:</strong> 0382 699 866</p>
+                </div>
+                <div class="contact-card">
+                    <h3>Cơ sở 2</h3>
+                    <p><strong>Địa chỉ:</strong> Số 6 TT3, đường số 23</p>
+                    <p>KĐT Thành phố Giao Lưu, Bắc Từ Liêm</p>
+                    <p><strong>Hotline:</strong> 0365 699 866</p>
+                </div>
+                <div class="contact-card">
+                    <h3>Thông tin</h3>
+                    <p><strong>Giờ mở cửa:</strong> 10:00 - 22:00</p>
+                    <p><strong>Ngày nghỉ:</strong> Không nghỉ</p>
+                    <p><strong>Đặt bàn:</strong> Hotline hoặc Zalo</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 Ngư Quán Phong Dev - Đặc sản cá sông</p>
+        <p>Website được tạo ra cho mục đích học tập và nghiên cứu</p>
+    </footer>
+
+    <!-- RAG Chat Toggle Button -->
+    <button class="chat-toggle" onclick="toggleChat()">💬</button>
+
+    <!-- RAG Chat Widget -->
+    <div class="rag-chat-widget" id="chatWidget">
+        <div class="chat-header">
+            <span>🐟 Ngư Quán AI Assistant</span>
+            <button onclick="toggleChat()">×</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                Xin chào! Tôi là trợ lý AI của nhà hàng Ngư Quán Phong Dev. 
+                Tôi có thể giúp bạn tìm hiểu thông tin nhà hàng, thực đơn, đặt bàn. 
+                Bạn cần hỗ trợ gì ạ?
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Nhập câu hỏi...">
+            <button onclick="sendMessage()">Gửi</button>
+        </div>
+    </div>
+
+    <script>
+        // Smooth scrolling
+        function scrollToSection(sectionId) {
+            document.getElementById(sectionId).scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Chat functionality
+        function toggleChat() {
+            const chatWidget = document.getElementById('chatWidget');
+            if (chatWidget.style.display === 'flex') {
+                chatWidget.style.display = 'none';
+            } else {
+                chatWidget.style.display = 'flex';
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            addMessage(message, 'user');
+            input.value = '';
+            
+            try {
+                console.log('Sending question:', message);
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        question: message
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('API response:', result);
+                    addMessage(result.answer, 'bot');
+                } else {
+                    console.log('API error:', response.status, response.statusText);
+                    // Fallback response
+                    addMessage("Xin lỗi, tôi đang gặp sự cố. Vui lòng thử lại sau hoặc liên hệ hotline: 0382 699 866", 'bot');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage("Xin lỗi, có lỗi kết nối. Vui lòng thử lại sau.", 'bot');
+            }
+        }
+
+        function addMessage(text, sender) {
+            const messages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = text;
+            messages.appendChild(messageDiv);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Enter key to send message
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize RAG system if available
+        if (typeof RAGSystem !== 'undefined') {
+            new RAGSystem();
+        }
+    </script>
+</body>
+</html>
