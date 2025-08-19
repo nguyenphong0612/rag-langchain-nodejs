@@ -212,38 +212,53 @@ app.post('/api/ask', async (req, res) => {
     const restaurantDataPath = './pdfs/nguquan-info.txt';
     if (fs.existsSync(restaurantDataPath)) {
       const restaurantText = fs.readFileSync(restaurantDataPath, 'utf8');
-      const restaurantChunks = chunkTexts(restaurantText, 200, 50);
+      const restaurantChunks = chunkTexts(restaurantText, 500, 100); // Tăng chunk size để có context tốt hơn
       
-            // Tìm chunks liên quan dựa trên từ khóa trong câu hỏi
+      // Tìm chunks liên quan với logic cải thiện
       const questionLower = question.toLowerCase();
       
-      // Logic RAG đơn giản: tìm chunks có chứa từ khóa trong câu hỏi
-      relevantChunks = restaurantChunks.filter(chunk => {
+      // Tạo danh sách từ khóa quan trọng
+      const keywords = extractKeywords(questionLower);
+      
+      // Tính điểm relevance cho từng chunk
+      const scoredChunks = restaurantChunks.map(chunk => {
         const chunkLower = chunk.toLowerCase();
+        let score = 0;
         
-        // Kiểm tra xem chunk có chứa toàn bộ câu hỏi không
-        if (chunkLower.includes(questionLower)) {
-          return true;
-        }
-        
-        // Kiểm tra từng từ trong câu hỏi
-        const words = questionLower.split(' ').filter(word => word.length > 1);
-        for (const word of words) {
-          if (chunkLower.includes(word)) {
-            return true;
+        // Điểm cho từ khóa chính xác
+        for (const keyword of keywords) {
+          if (chunkLower.includes(keyword)) {
+            score += 10;
           }
         }
-        return false;
+        
+        // Điểm cho các từ quan trọng trong câu hỏi
+        const questionWords = questionLower.split(' ').filter(word => word.length > 2);
+        for (const word of questionWords) {
+          if (chunkLower.includes(word)) {
+            score += 2;
+          }
+        }
+        
+        // Điểm bonus cho chunks có thông tin cụ thể
+        if (chunkLower.includes('địa chỉ') || chunkLower.includes('hotline') || 
+            chunkLower.includes('giá') || chunkLower.includes('mở cửa')) {
+          score += 5;
+        }
+        
+        return { chunk, score };
       });
       
-      // Nếu không tìm thấy, lấy 3 chunks đầu tiên
+      // Sắp xếp theo điểm số và lấy top chunks
+      scoredChunks.sort((a, b) => b.score - a.score);
+      relevantChunks = scoredChunks
+        .filter(item => item.score > 0)
+        .slice(0, 5)
+        .map(item => item.chunk);
+      
+      // Nếu không tìm thấy chunks có điểm > 0, lấy 3 chunks đầu tiên
       if (relevantChunks.length === 0) {
         relevantChunks = restaurantChunks.slice(0, 3);
-      }
-      
-      // Giới hạn số lượng chunks để tránh quá dài
-      if (relevantChunks.length > 5) {
-        relevantChunks = relevantChunks.slice(0, 5);
       }
     } else {
       // Fallback: sử dụng dữ liệu PDF/TXT thông thường nếu không có file nguquan-info.txt
@@ -284,23 +299,63 @@ app.post('/api/ask', async (req, res) => {
   }
 });
 
+// Hàm trích xuất từ khóa từ câu hỏi
+function extractKeywords(question) {
+  const keywords = [];
+  
+  // Từ khóa về địa chỉ
+  if (question.includes('địa chỉ') || question.includes('ở đâu') || question.includes('chỗ nào')) {
+    keywords.push('địa chỉ', 'cơ sở', 'hoàng quán chi', 'thành phố giao lưu');
+  }
+  
+  // Từ khóa về liên hệ
+  if (question.includes('số điện thoại') || question.includes('hotline') || question.includes('liên hệ')) {
+    keywords.push('hotline', 'zalo', '0382', '0365');
+  }
+  
+  // Từ khóa về giá
+  if (question.includes('giá') || question.includes('bao nhiêu') || question.includes('tiền')) {
+    keywords.push('giá', 'đồng', '000đ');
+  }
+  
+  // Từ khóa về giờ mở cửa
+  if (question.includes('mở cửa') || question.includes('giờ') || question.includes('thời gian')) {
+    keywords.push('mở cửa', 'buổi trưa', 'buổi tối');
+  }
+  
+  // Từ khóa về món ăn
+  if (question.includes('món') || question.includes('ăn') || question.includes('thực đơn')) {
+    keywords.push('món', 'cá', 'thực đơn', 'đặc sản');
+  }
+  
+  // Từ khóa về đặt bàn
+  if (question.includes('đặt bàn') || question.includes('đặt chỗ')) {
+    keywords.push('đặt bàn', 'online');
+  }
+  
+  return keywords;
+}
+
 // Function để generate answer cho nhà hàng
 async function generateRestaurantAnswer(question, relevantChunks) {
   const { generateAnswer } = require('./src/generate-answer');
   
   // Tạo prompt đặc biệt cho nhà hàng
-  const restaurantPrompt = `Bạn là trợ lý ảo của nhà hàng Ngư Quán. Hãy trả lời câu hỏi của khách hàng một cách thân thiện và chính xác dựa trên thông tin sau:
+  const restaurantPrompt = `Bạn là trợ lý ảo thân thiện của nhà hàng Ngư Quán - Đặc sản cá sông số 1 Việt Nam. Hãy trả lời câu hỏi của khách hàng một cách tự nhiên, mượt mà và đầy đủ thông tin.
 
+HƯỚNG DẪN TRẢ LỜI:
+1. **Giọng điệu**: Thân thiện, chuyên nghiệp, như đang nói chuyện trực tiếp với khách
+2. **Thông tin**: Chỉ sử dụng thông tin có trong dữ liệu được cung cấp
+3. **Cấu trúc**: Trả lời rõ ràng, có thể chia thành các ý nhỏ nếu cần
+4. **Tự nhiên**: Sử dụng ngôn ngữ tự nhiên, không robot
+5. **Đầy đủ**: Cung cấp đủ thông tin khách cần, không thừa không thiếu
+
+THÔNG TIN THAM KHẢO:
 ${relevantChunks.join('\n\n')}
 
-LƯU Ý QUAN TRỌNG:
-- Nếu khách hỏi về địa chỉ, chỉ trả lời địa chỉ cụ thể
-- Nếu khách hỏi về hotline, chỉ trả lời số điện thoại
-- Nếu khách hỏi về giá, chỉ trả lời thông tin giá
-- Nếu khách hỏi về giờ mở cửa, chỉ trả lời thời gian
-- KHÔNG tự động chuyển sang chủ đề khác nếu khách không hỏi
+Câu hỏi của khách: ${question}
 
-Câu hỏi: ${question}`;
+Hãy trả lời một cách tự nhiên và hữu ích:`;
 
   // Sử dụng generateAnswer với prompt đặc biệt
   return await generateAnswer(question, relevantChunks, restaurantPrompt);
@@ -320,3 +375,4 @@ const startServer = async () => {
 };
 
 startServer();
+
